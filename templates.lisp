@@ -81,12 +81,16 @@
 (defmacro define-templated-function (name (&rest template-args) (&rest lambda-list) &body body)
   (check-type name symbol)
   (assert (every #'symbolp template-args))
-  `(progn
-     (parameterized-function:define-dispatch-function ,name ,template-args ,lambda-list)
-     (define-template ,name ,template-args ,@body)
-     (setf (template-function-arguments (gethash ',name *templates*))
-           ',lambda-list)
-     ',name))
+  (multiple-value-bind (body decls docs)
+      (alexandria:parse-body body :documentation t)
+    (declare (ignore decls))
+    `(progn
+       (parameterized-function:define-dispatch-function ,name ,template-args ,lambda-list :documentation ,docs)
+       (eval-when (:compile-toplevel :load-toplevel :execute)
+         (define-template ,name ,template-args ,@body)
+         (setf (template-function-arguments (gethash ',name *templates*))
+               ',lambda-list))
+       ',name)))
 
 (defmacro instantiate-templated-function (name &rest template-values)
   (let ((lambda-list (template-function-arguments (gethash name *templates*))))
