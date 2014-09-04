@@ -93,10 +93,13 @@
        ',name)))
 
 (defmacro instantiate-templated-function (name &rest template-values)
-  (let ((lambda-list (template-function-arguments (gethash name *templates*))))
-    `(progn
-       (parameterized-function:define-parameterized-function ,name ,template-values ,lambda-list
-         ,(apply #'expand-template name template-values)))))
+  (let ((template (gethash name *templates*)))
+    (when (null template)
+      (error "Undefined template named ~S." name))
+    (let ((lambda-list (template-function-arguments template)))
+      `(progn
+         (parameterized-function:define-parameterized-function ,name ,template-values ,lambda-list
+           ,(apply #'expand-template name template-values))))))
 
 #+#:example
 (define-template add (s)
